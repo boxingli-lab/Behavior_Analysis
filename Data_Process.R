@@ -1,9 +1,9 @@
 #!user/bin/env R
 # Author: Yuxin Qin
-# Created: 2021-12
+# Created: 2024-01
 # File: Data_Process.R
 # Email: qinyx3@mail2.sysu.edu.cn
-# Usage: This file is used to handle the behavior data and plot it.
+# Usage: This file is used to preprocess the manual annotated behavior.
 
 #################
 ### libraries ###
@@ -27,7 +27,7 @@ library(plyr)
 # col: The column of a specific mice. 
 #########
 # Output
-# s: The data frame with the start and end frame of every partibular behavior of the pointed mice.
+# s: The data frame with the start and end frame of every particular behavior of the pointed mice.
 rect_data <- function(data, col){
   xstart <- c()
   xend <- c()
@@ -194,21 +194,19 @@ for(i in 2:section){
 }
 
 # Change data label
-all_data$type <- gsub("N", "Sniffing mice (no pain)", all_data$type) 
-all_data$type <- gsub("P", "Sniffing mice (pain)", all_data$type) 
-all_data$type <- gsub("E", "Exploring", all_data$type) 
-all_data$type <- gsub("G", "Grooming", all_data$type) 
+all_data$type <- gsub("N", "Sniffing demo without pain", all_data$type) 
+all_data$type <- gsub("P", "Sniffing demo in pain", all_data$type) 
+all_data$type <- gsub("E", "Exploration", all_data$type) 
+all_data$type <- gsub("G", "Self-grooming", all_data$type) 
 all_data$type <- gsub("O", "Others", all_data$type) 
 
 # Change to factor
-all_data$type <- factor(all_data$type, levels = c("Sniffing mice (no pain)","Sniffing mice (pain)", "Exploring", "Grooming", "Others"))
+all_data$type <- factor(all_data$type, levels = c("Sniffing demo without pain","Sniffing demo in pain", "Exploration", "Self-grooming", "Others"))
 all_data$mice <- factor(all_data$mice, levels = c('female1','male1', 'female2','male2','female3','male3','female4','male4', 'female5','male5', 'female6','male6','female7','male7','female8','male8','female9','male9','female10','male10'))
 
 # Adjust position
-all_data <- select(all_data, mice, time, count, type, long, prob, start, end, total)
+all_data <- select(all_data, mice, time, count, type, long, prob, start, end)
 
-# Save the data
-write.csv(all_data, 'output_data/behavior_summary.csv')
 
 #####################################################
 ### Handling data: feature data accumulative time ###
@@ -226,21 +224,21 @@ for(j in 1: length(mice_group)){
   for(i in 1:10){
     female1_time1 <- subset(female1, time <= i)
     c <- count(female1_time1$type)
-    if(length(which(c$x =='Sniffing mice (no pain)')) > 0){
-      feature_data[(i + (j-1) * 10), 1] <- c$freq[which(c$x =='Sniffing mice (no pain)')]
-      feature_data[(i + (j-1) * 10), 6] <- sum(subset(female1_time1, type == 'Sniffing mice (no pain)')$prob)/sum(female1_time1$prob)
+    if(length(which(c$x =='Sniffing demo without pain')) > 0){
+      feature_data[(i + (j-1) * 10), 1] <- c$freq[which(c$x =='Sniffing demo without pain')]
+      feature_data[(i + (j-1) * 10), 6] <- sum(subset(female1_time1, type == 'Sniffing demo without pain')$prob)/sum(female1_time1$prob)
     }
-    if(length(which(c$x =='Sniffing mice (pain)')) > 0){
-      feature_data[(i + (j-1) * 10), 2] <- c$freq[which(c$x =='Sniffing mice (pain)')]
-      feature_data[(i + (j-1) * 10), 7] <- sum(subset(female1_time1, type == 'Sniffing mice (pain)')$prob)/sum(female1_time1$prob)
+    if(length(which(c$x =='Sniffing demo in pain')) > 0){
+      feature_data[(i + (j-1) * 10), 2] <- c$freq[which(c$x =='Sniffing demo in pain')]
+      feature_data[(i + (j-1) * 10), 7] <- sum(subset(female1_time1, type == 'Sniffing demo in pain')$prob)/sum(female1_time1$prob)
     }
-    if(length(which(c$x =='Exploring')) > 0){
-      feature_data[(i + (j-1) * 10), 3] <- c$freq[which(c$x =='Exploring')]
-      feature_data[(i + (j-1) * 10), 8] <- sum(subset(female1_time1, type == 'Exploring')$prob)/sum(female1_time1$prob)
+    if(length(which(c$x =='Exploration')) > 0){
+      feature_data[(i + (j-1) * 10), 3] <- c$freq[which(c$x =='Exploration')]
+      feature_data[(i + (j-1) * 10), 8] <- sum(subset(female1_time1, type == 'Exploration')$prob)/sum(female1_time1$prob)
     }
-    if(length(which(c$x =='Grooming')) >0){
-      feature_data[(i + (j-1) * 10), 4] <- c$freq[which(c$x =='Grooming')]
-      feature_data[(i + (j-1) * 10), 9] <- sum(subset(female1_time1, type == 'Grooming')$prob)/sum(female1_time1$prob)
+    if(length(which(c$x =='Self-grooming')) >0){
+      feature_data[(i + (j-1) * 10), 4] <- c$freq[which(c$x =='Self-grooming')]
+      feature_data[(i + (j-1) * 10), 9] <- sum(subset(female1_time1, type == 'Self-grooming')$prob)/sum(female1_time1$prob)
     }
     if(length(which(c$x =='Others')) > 0){
       feature_data[(i + (j-1) * 10), 5] <- c$freq[which(c$x =='Others')]
@@ -259,24 +257,5 @@ for(i in 1: length(mice_group)){
 rownames(feature_data) <- col_vec  
 
 # Save the data
+dir.create('output_data')
 write.csv(feature_data, 'output_data/feature_data_accumulative_time.csv')
-
-########################
-### Plot the heatmap ###
-########################
-# Select the behavior events intended to present
-data_t <- subset(all_data, type == "Sniffing mice (pain)" | type == "Grooming")
-
-# Plot
-p <- ggplot(data_t)+
-  geom_rect(aes(xmin = start,xmax = end , ymin = 0 , ymax = 1 , fill = type))+ 
-  facet_wrap(~mice, ncol = 2, strip.position="left")+
-  theme_bw()+
-  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) + 
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())+
-  scale_x_continuous(breaks=seq(0,9000,by=3000))+
-  theme(legend.position = "bottom")+
-  scale_fill_manual(values=c(hue_pal()(3)[1], hue_pal()(3)[2]))
-
-# Save the plot
-ggsave(paste0("Plots/specific_behavior.pdf"), p, width =8, height = 10)
